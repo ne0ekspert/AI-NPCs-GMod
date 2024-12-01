@@ -55,17 +55,26 @@ function drawaihud()
     local npcTable = list.Get("NPC")
     for npcClass, _ in pairs(npcTable) do npcDropdown:AddChoice(npcClass) end
 
+    local aiModelDropdown = vgui.Create("DComboBox", rightPanel) -- Create a dropdown menu for LLM model selection
+    aiModelDropdown:SetPos(10, 110)
+    aiModelDropdown:SetSize(170, 20)
+    aiModelDropdown:AddChoice("gpt-4o")
+    aiModelDropdown:AddChoice("gpt-4o-mini")
+    aiModelDropdown:AddChoice("gpt-4")
+    aiModelDropdown:AddChoice("gpt-4-turbo")
+    aiModelDropdown:AddChoice("gpt-3.5-turbo")
+
     local apiKeyLabel = vgui.Create("DLabel", rightPanel) -- Create a label for the API key
     apiKeyLabel:SetText("API Key:") -- Set the text of the label
-    apiKeyLabel:SetPos(10, 110) -- Set the position of the label
+    apiKeyLabel:SetPos(10, 130) -- Set the position of the label
 
     local apiKeyEntry = vgui.Create("DTextEntry", rightPanel) -- Create a text entry for the API key
-    apiKeyEntry:SetPos(10, 130) -- Set the position of the text entry
+    apiKeyEntry:SetPos(10, 150) -- Set the position of the text entry
     apiKeyEntry:SetSize(170, 20) -- Set the size of the text entry
     apiKeyEntry:SetText(inputapikey) -- Set the default text of the text entry
     local freeAPIButton = vgui.Create("DCheckBoxLabel", rightPanel) -- Create a checkbox for enabling "Free API"
     freeAPIButton:SetText("Free API") -- Set the text of the checkbox
-    freeAPIButton:SetPos(10, 155) -- Set the position of the checkbox
+    freeAPIButton:SetPos(10, 175) -- Set the position of the checkbox
     freeAPIButton:SetSize(170, 20) -- Set the size of the checkbox
 
     freeAPIButton.OnChange = function(self, value)
@@ -103,6 +112,11 @@ function drawaihud()
             net.WriteString(apiKeyEntry:GetValue())
             net.SendToServer()
         end
+
+        -- Send selected LLM
+        net.Start("SendLLMModel")
+        net.WriteString(aiModelDropdown:GetValue())
+        net.SendToServer()
 
         -- Send AI personality
         net.Start("SendPersonality")

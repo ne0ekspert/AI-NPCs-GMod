@@ -1,5 +1,6 @@
 -- Add network strings for communication between client and server
 util.AddNetworkString("SendAPIKey")
+util.AddNetworkString("SendLLMModel")
 util.AddNetworkString("SendPersonality")
 util.AddNetworkString("SendSelectedNPC")
 util.AddNetworkString("SayTTS")
@@ -30,6 +31,10 @@ net.Receive("SendTTS", function(len, ply)
     TTSEnabled = net.ReadBool()
     print("TTS enabled: " .. tostring(TTSEnabled))
     _G.TTSEnabled = TTSEnabled -- Set the TTS flag in the Global table
+end)
+
+net.Receive("SendLLMModel", function(len, ply)
+    _G.llm = net.ReadString()
 end)
 
 -- Receive personality from client
@@ -125,7 +130,7 @@ meta.sendGPTRequest = function(this, text)
             ['Authorization'] = 'Bearer ' .. _G.apiKey -- Access the API key from the Global table
         },
         body = [[{
-            "model": "gpt-3.5-turbo",
+            "model": ]] .. _G.llm .. [[,
             "messages": [{"role": "user", "content": "]] .. text .. [["}],
             "max_tokens": 50,
             "temperature": 0.7
