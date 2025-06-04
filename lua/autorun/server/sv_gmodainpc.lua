@@ -223,7 +223,7 @@ end)
 
 hook.Add("Think", "FollowNPCSound", function()
     for k, v in pairs(spawnedNPC) do
-        if v["enableTTS"] then
+        if v["enableTTS"] and IsValid(v.npc) then
             net.Start("TTSPositionUpdate")
             net.WriteString(k)
             net.WriteVector(v.npc:GetPos())
