@@ -1,3 +1,4 @@
+local utils = include("providers/utils.lua")
 local openrouterProvider = {}
 
 openrouterProvider.models = {
@@ -6,9 +7,6 @@ openrouterProvider.models = {
 
 if SERVER then
     function openrouterProvider.request(npc, callback)
-        local function correctFloatToInt(jsonString)
-            return string.gsub(jsonString, '(%d+)%.0', '%1')
-        end
 
         local requestBody = {
             model = npc["model"],
@@ -25,7 +23,7 @@ if SERVER then
                 ["Content-Type"] = "application/json",
                 ["Authorization"] = "Bearer " .. npc["apiKey"] -- Access the API key from the Global table
             },
-            body = correctFloatToInt(util.TableToJSON(requestBody)), -- tableToJSON changes integers to float
+            body = utils.correctFloatToInt(util.TableToJSON(requestBody)), -- tableToJSON changes integers to float
 
             success = function(code, body, headers)
                 -- Parse the JSON response from the GPT-3 API
