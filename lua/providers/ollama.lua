@@ -1,12 +1,10 @@
+local utils = include("providers/utils.lua")
 local ollamaProvider = {}
 
 ollamaProvider.models = {}
 
 if SERVER then
     function ollamaProvider.request(npc, callback)
-        local function correctFloatToInt(jsonString)
-            return string.gsub(jsonString, '(%d+)%.0', '%1')
-        end
 
         if not npc["hostname"] then
             ErrorNoHalt("Hostname not defined")
@@ -28,7 +26,7 @@ if SERVER then
                 ["Content-Type"] = "application/json",
                 ["Authorization"] = "Bearer " .. npc["apiKey"] -- Access the API key from the Global table
             },
-            body = correctFloatToInt(util.TableToJSON(requestBody)), -- tableToJSON changes integers to float
+            body = utils.correctFloatToInt(util.TableToJSON(requestBody)), -- tableToJSON changes integers to float
 
             success = function(code, body, headers)
                 -- Parse the JSON response from the GPT-3 API
