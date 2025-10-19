@@ -11,7 +11,7 @@ list.Set("DesktopWindows", "ai_menu", {
 local modelPanel
 function drawaihud()
     local frame = vgui.Create("DFrame") -- Create a frame for the character selection panel
-    frame:SetSize(460, 580) -- Set the size of the frame with extra space for sliders
+    frame:SetSize(960, 580) -- Expand the frame for the new column layout
     frame:SetTitle("Character Selection") -- Set the title of the frame
     frame:Center() -- Center the frame on the screen
     frame:MakePopup() -- Make the frame a popup
@@ -20,10 +20,31 @@ function drawaihud()
     frame:SetScreenLock(true) -- Lock the mouse to the frame
     frame:SetIcon("materials/gptlogo/ChatGPT_logo.svg.png") -- Set the icon of the frame
 
-    -- Left: 3D model display
-    modelPanel = vgui.Create("DModelPanel", frame)
-    modelPanel:Dock(LEFT)
-    modelPanel:SetSize(220, 0)
+    local labelColor = Color(255, 255, 255)
+
+    local contentPanel = vgui.Create("DPanel", frame)
+    contentPanel:Dock(FILL)
+    contentPanel:DockPadding(10, 10, 10, 10)
+    contentPanel.Paint = nil
+
+    local modelColumn = vgui.Create("DPanel", contentPanel)
+    modelColumn:Dock(LEFT)
+    modelColumn:SetWide(220)
+    modelColumn:DockMargin(0, 0, 10, 0)
+    modelColumn:DockPadding(10, 10, 10, 10)
+    modelColumn.Paint = nil
+
+    local modelHeader = vgui.Create("DLabel", modelColumn)
+    modelHeader:SetText("3D model view")
+    modelHeader:SetFont("Trebuchet24")
+    modelHeader:SetContentAlignment(4)
+    modelHeader:Dock(TOP)
+    modelHeader:SetTall(24)
+    modelHeader:DockMargin(0, 0, 0, 8)
+    modelHeader:SetTextColor(labelColor)
+
+    modelPanel = vgui.Create("DModelPanel", modelColumn)
+    modelPanel:Dock(FILL)
     modelPanel:SetModel("models/humans/group01/male_07.mdl")
     modelPanel:SetFOV(48)
     modelPanel.LayoutEntity = function(self, ent)
@@ -31,10 +52,33 @@ function drawaihud()
         ent:SetAngles(Angle(0, RealTime() * 100, 0))
     end
 
-    -- Right: Controls
-    local rightPanel = vgui.Create("DPanel", frame)
-    rightPanel:Dock(FILL)
-    rightPanel:SetBackgroundColor(Color(116, 170, 156))
+    local function createColumn(title, width, marginRight)
+        local container = vgui.Create("DPanel", contentPanel)
+        container:Dock(LEFT)
+        container:SetWide(width)
+        container:DockMargin(0, 0, marginRight or 10, 0)
+        container:DockPadding(10, 10, 10, 10)
+        container.Paint = nil
+
+        local header = vgui.Create("DLabel", container)
+        header:SetText(title)
+        header:SetFont("Trebuchet24")
+        header:SetContentAlignment(4)
+        header:Dock(TOP)
+        header:SetTall(24)
+        header:DockMargin(0, 0, 0, 8)
+        header:SetTextColor(labelColor)
+
+        local body = vgui.Create("DScrollPanel", container)
+        body:Dock(FILL)
+        body:SetPaintBackground(false)
+
+        return body
+    end
+
+    local personalityBody = createColumn("AI Personality", 220)
+    local providerBody = createColumn("Model selector", 220)
+    local settingsBody = createColumn("Model settings", 240, 0)
 
     local currentProviderId = "openai"
     local currentProviderData = nil
@@ -55,53 +99,84 @@ function drawaihud()
     local reasoningDropdown
 
     -- AI Personality
-    local nameLabel = vgui.Create("DLabel", rightPanel)
+    local nameLabel = personalityBody:Add("DLabel")
     nameLabel:SetText("AI Personality:")
-    nameLabel:SetPos(10, 10)
-    nameLabel:SetSize(170, 20)
-    local aiLinkEntry = vgui.Create("DTextEntry", rightPanel)
-    aiLinkEntry:SetPos(10, 30)
-    aiLinkEntry:SetSize(170, 20)
+    nameLabel:SetContentAlignment(4)
+    nameLabel:SetTall(20)
+    nameLabel:Dock(TOP)
+    nameLabel:DockMargin(0, 0, 0, 4)
+    nameLabel:SetTextColor(labelColor)
+
+    local aiLinkEntry = personalityBody:Add("DTextEntry")
+    aiLinkEntry:Dock(TOP)
+    aiLinkEntry:SetTall(48)
+    aiLinkEntry:DockMargin(0, 0, 0, 12)
 
     -- Provider selection
-    local providerLabel = vgui.Create("DLabel", rightPanel)
+    local providerLabel = providerBody:Add("DLabel")
     providerLabel:SetText("Provider:")
-    providerLabel:SetPos(10, 60)
-    providerDropdown = vgui.Create("DComboBox", rightPanel)
-    providerDropdown:SetPos(10, 80)
-    providerDropdown:SetSize(170, 20)
+    providerLabel:SetContentAlignment(4)
+    providerLabel:SetTall(20)
+    providerLabel:Dock(TOP)
+    providerLabel:DockMargin(0, 0, 0, 4)
+    providerLabel:SetTextColor(labelColor)
+
+    providerDropdown = providerBody:Add("DComboBox")
+    providerDropdown:Dock(TOP)
+    providerDropdown:SetTall(24)
+    providerDropdown:DockMargin(0, 0, 0, 12)
     providerDropdown:AddChoice("OpenAI", "openai", true)
     providerDropdown:AddChoice("OpenRouter", "openrouter")
     providerDropdown:AddChoice("Groq", "groq")
     providerDropdown:AddChoice("Ollama", "ollama")
 
     -- Hostname entry
-    local hostnameLabel = vgui.Create("DLabel", rightPanel)
+    local hostnameLabel = providerBody:Add("DLabel")
     hostnameLabel:SetText("Hostname:")
-    hostnameLabel:SetPos(10, 110)
-    local hostnameEntry = vgui.Create("DTextEntry", rightPanel)
-    hostnameEntry:SetPos(10, 130)
-    hostnameEntry:SetSize(170, 20)
+    hostnameLabel:SetContentAlignment(4)
+    hostnameLabel:SetTall(20)
+    hostnameLabel:Dock(TOP)
+    hostnameLabel:DockMargin(0, 0, 0, 4)
+    hostnameLabel:SetTextColor(labelColor)
+
+    local hostnameEntry = providerBody:Add("DTextEntry")
+    hostnameEntry:Dock(TOP)
+    hostnameEntry:SetTall(24)
+    hostnameEntry:DockMargin(0, 0, 0, 12)
 
     -- Model selection or input
-    local modelLabel = vgui.Create("DLabel", rightPanel)
+    local modelLabel = providerBody:Add("DLabel")
     modelLabel:SetText("Model:")
-    modelLabel:SetPos(10, 160)
-    modelDropdown = vgui.Create("DComboBox", rightPanel)
-    modelDropdown:SetPos(10, 180)
-    modelDropdown:SetSize(170, 20)
-    modelTextEntry = vgui.Create("DTextEntry", rightPanel)
-    modelTextEntry:SetPos(10, 180)
-    modelTextEntry:SetSize(170, 20)
+    modelLabel:SetContentAlignment(4)
+    modelLabel:SetTall(20)
+    modelLabel:Dock(TOP)
+    modelLabel:DockMargin(0, 0, 0, 4)
+    modelLabel:SetTextColor(labelColor)
+
+    modelDropdown = providerBody:Add("DComboBox")
+    modelDropdown:Dock(TOP)
+    modelDropdown:SetTall(24)
+    modelDropdown:DockMargin(0, 0, 0, 8)
+
+    modelTextEntry = providerBody:Add("DTextEntry")
+    modelTextEntry:Dock(TOP)
+    modelTextEntry:SetTall(24)
+    modelTextEntry:DockMargin(0, 0, 0, 8)
     modelTextEntry:SetVisible(false)
 
     -- NPC selection
-    local npcLabel = vgui.Create("DLabel", rightPanel)
+    local npcLabel = providerBody:Add("DLabel")
     npcLabel:SetText("Select NPC:")
-    npcLabel:SetPos(10, 210)
-    local npcDropdown = vgui.Create("DComboBox", rightPanel)
-    npcDropdown:SetPos(10, 230)
-    npcDropdown:SetSize(170, 20)
+    npcLabel:SetContentAlignment(4)
+    npcLabel:SetTall(20)
+    npcLabel:Dock(TOP)
+    npcLabel:DockMargin(0, 12, 0, 4)
+    npcLabel:SetTextColor(labelColor)
+
+    local npcDropdown = providerBody:Add("DComboBox")
+    npcDropdown:Dock(TOP)
+    npcDropdown:SetTall(24)
+    npcDropdown:DockMargin(0, 0, 0, 12)
     npcDropdown:SetValue("npc_citizen")
     local selectedNPCData
     function npcDropdown:OnSelect(index, value, data)
@@ -121,59 +196,77 @@ function drawaihud()
     end
 
     -- API key
-    local apiKeyLabel = vgui.Create("DLabel", rightPanel)
+    local apiKeyLabel = settingsBody:Add("DLabel")
     apiKeyLabel:SetText("API Key:")
-    apiKeyLabel:SetPos(10, 260)
-    local apiKeyEntry = vgui.Create("DTextEntry", rightPanel)
-    apiKeyEntry:SetPos(10, 280)
-    apiKeyEntry:SetSize(170, 20)
+    apiKeyLabel:SetContentAlignment(4)
+    apiKeyLabel:SetTall(20)
+    apiKeyLabel:Dock(TOP)
+    apiKeyLabel:DockMargin(0, 0, 0, 4)
+    apiKeyLabel:SetTextColor(labelColor)
+
+    local apiKeyEntry = settingsBody:Add("DTextEntry")
+    apiKeyEntry:Dock(TOP)
+    apiKeyEntry:SetTall(24)
+    apiKeyEntry:DockMargin(0, 0, 0, 12)
     apiKeyEntry:SetText(inputapikey)
 
     -- Free API toggle
-    local freeAPIButton = vgui.Create("DCheckBoxLabel", rightPanel)
+    local freeAPIButton = settingsBody:Add("DCheckBoxLabel")
     freeAPIButton:SetText("Free API")
-    freeAPIButton:SetPos(10, 310)
-    freeAPIButton:SetSize(170, 20)
+    freeAPIButton:SetTall(20)
+    freeAPIButton:Dock(TOP)
+    freeAPIButton:DockMargin(0, 0, 0, 8)
+    freeAPIButton:SetTextColor(labelColor)
     freeAPIButton.OnChange = function(self, value)
         apiKeyEntry:SetText(value and "" or apiKeyEntry:GetText())
         apiKeyEntry:SetEditable(not value)
     end
 
     -- Text-to-speech toggle
-    local TTSButton = vgui.Create("DCheckBoxLabel", rightPanel)
+    local TTSButton = settingsBody:Add("DCheckBoxLabel")
     TTSButton:SetText("Text to Speech")
-    TTSButton:SetPos(10, 330)
-    TTSButton:SetSize(210, 20)
+    TTSButton:SetTall(20)
+    TTSButton:Dock(TOP)
+    TTSButton:DockMargin(0, 0, 0, 12)
     TTSButton:SetValue(0)
+    TTSButton:SetTextColor(labelColor)
 
     -- Generation controls
-    maxTokensSlider = vgui.Create("DNumSlider", rightPanel)
+    maxTokensSlider = settingsBody:Add("DNumSlider")
     maxTokensSlider:SetText("Max Tokens")
-    maxTokensSlider:SetPos(10, 360)
-    maxTokensSlider:SetSize(210, 40)
+    maxTokensSlider.Label:SetTextColor(labelColor)
+    maxTokensSlider:SetTall(48)
+    maxTokensSlider:Dock(TOP)
+    maxTokensSlider:DockMargin(0, 0, 0, 12)
     maxTokensSlider:SetMin(128)
     maxTokensSlider:SetMax(4096)
     maxTokensSlider:SetDecimals(0)
     maxTokensSlider:SetValue(2048)
 
-    temperatureSlider = vgui.Create("DNumSlider", rightPanel)
+    temperatureSlider = settingsBody:Add("DNumSlider")
     temperatureSlider:SetText("Temperature")
-    temperatureSlider:SetPos(10, 400)
-    temperatureSlider:SetSize(210, 40)
+    temperatureSlider.Label:SetTextColor(labelColor)
+    temperatureSlider:SetTall(48)
+    temperatureSlider:Dock(TOP)
+    temperatureSlider:DockMargin(0, 0, 0, 12)
     temperatureSlider:SetMin(0)
     temperatureSlider:SetMax(2)
     temperatureSlider:SetDecimals(2)
     temperatureSlider:SetValue(1)
 
-    reasoningLabel = vgui.Create("DLabel", rightPanel)
+    reasoningLabel = settingsBody:Add("DLabel")
     reasoningLabel:SetText("Reasoning Effort:")
-    reasoningLabel:SetPos(10, 440)
-    reasoningLabel:SetSize(210, 20)
+    reasoningLabel:SetContentAlignment(4)
+    reasoningLabel:SetTall(20)
+    reasoningLabel:Dock(TOP)
+    reasoningLabel:DockMargin(0, 12, 0, 4)
     reasoningLabel:SetVisible(false)
+    reasoningLabel:SetTextColor(labelColor)
 
-    reasoningDropdown = vgui.Create("DComboBox", rightPanel)
-    reasoningDropdown:SetPos(10, 460)
-    reasoningDropdown:SetSize(210, 20)
+    reasoningDropdown = settingsBody:Add("DComboBox")
+    reasoningDropdown:Dock(TOP)
+    reasoningDropdown:SetTall(24)
+    reasoningDropdown:DockMargin(0, 0, 0, 12)
     reasoningDropdown:SetVisible(false)
 
     local function toTitleCase(value)
@@ -372,10 +465,11 @@ function drawaihud()
     populateModels(currentProviderId)
 
     -- Create NPC button
-    local createButton = vgui.Create("DButton", rightPanel)
+    local createButton = settingsBody:Add("DButton")
     createButton:SetText("Create NPC")
-    createButton:SetPos(10, 500)
-    createButton:SetSize(210, 60)
+    createButton:SetTall(60)
+    createButton:Dock(TOP)
+    createButton:DockMargin(0, 20, 0, 0)
     createButton.DoClick = function()
         inputapikey = apiKeyEntry:GetValue()
         local APIKEY = freeAPIButton:GetChecked() and
