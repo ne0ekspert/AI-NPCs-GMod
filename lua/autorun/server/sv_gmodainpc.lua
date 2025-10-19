@@ -78,8 +78,11 @@ net.Receive("SendNPCInfo", function(len, ply)
     spawnedNPC[key]["provider"] = data["provider"]
     spawnedNPC[key]["hostname"] = data["hostname"]
     spawnedNPC[key]["apiKey"] = apiKey
-    spawnedNPC[key]["max_tokens"] = 50
-    spawnedNPC[key]["temperature"] = 0.7
+    local maxTokens = tonumber(data["max_tokens"])
+    spawnedNPC[key]["max_tokens"] = maxTokens or 2048
+    local temperature = tonumber(data["temperature"])
+    spawnedNPC[key]["temperature"] = temperature
+    spawnedNPC[key]["reasoning"] = data["reasoning"]
     spawnedNPC[key]["enableTTS"] = data["enableTTS"]
     spawnedNPC[key]["model"] = data["model"]
 
