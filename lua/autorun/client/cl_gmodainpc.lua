@@ -1,3 +1,5 @@
+include("autorun/sh_ainpcs_debug.lua")
+
 local providers = include('providers/providers.lua')
 
 -- Context menu button
@@ -533,7 +535,7 @@ function drawaihud()
             requestBody.temperature = temperatureSlider:GetValue()
         end
 
-        PrintTable(requestBody)
+        AINPCS.DebugPrintTable(requestBody)
         net.Start("SendNPCInfo")
         net.WriteTable(requestBody)
         net.SendToServer()

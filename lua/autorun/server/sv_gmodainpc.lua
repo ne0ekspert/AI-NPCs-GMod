@@ -5,6 +5,8 @@ util.AddNetworkString("SendNPCInfo")
 util.AddNetworkString("SayTTS")
 util.AddNetworkString("TTSPositionUpdate")
 
+include("autorun/sh_ainpcs_debug.lua")
+
 local providers = include('providers/providers.lua')
 
 local spawnedNPC = {} -- Variable to store the reference to the spawned NPC
@@ -40,16 +42,16 @@ end)
 
 net.Receive("SendNPCInfo", function(len, ply)
     local data = net.ReadTable()
-    print("Data received: " .. util.TableToJSON(data))
+    AINPCS.DebugPrint("Data received: " .. util.TableToJSON(data))
 
     local apiKey = data["apiKey"]
     local providerId = data["provider"]
     -- Please dont steal our API key, we are poor
     -- TODO Add Encrpytion Decrpytion crap to obfuscate api key
     if apiKey == "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" then
-        print("Free API key received")
+        AINPCS.DebugPrint("Free API key received")
     else
-        print("API key received: " .. apiKey)
+        AINPCS.DebugPrint("API key received: " .. apiKey)
     end
 
     if apiKey == "" and providerId ~= "ollama" then
@@ -67,7 +69,7 @@ net.Receive("SendNPCInfo", function(len, ply)
     -- Fallback to set default class if not present
     if not npcData.Class then
         npcData.Class = "npc_citizen"
-        print("Warning: npcData.Class was nil, defaulted to 'npc_citizen'")
+        AINPCS.DebugPrint("Warning: npcData.Class was nil, defaulted to 'npc_citizen'")
     end
 
     -- Generate a unique key for the NPC
@@ -88,7 +90,7 @@ net.Receive("SendNPCInfo", function(len, ply)
     spawnedNPC[key]["model"] = data["model"]
 
     local personality = data["personality"]
-    print("Personality received: " .. personality)
+    AINPCS.DebugPrint("Personality received: " .. personality)
     spawnedNPC[key]["personality"] = "it is your job to act like this personality: " ..
                                      personality ..
                                      "if you understand, respond with a hello in character" -- Set the personality in the Global table
@@ -103,7 +105,7 @@ net.Receive("SendNPCInfo", function(len, ply)
     spawnedNPC[key]["npc"] = SpawnNPC(spawnPosition, spawnAngle, data["NPCData"], key)
 
     if spawnedNPC[key] and IsValid(spawnedNPC[key]["npc"]) then
-        print("NPC spawned successfully!")
+        AINPCS.DebugPrint("NPC spawned successfully!")
 
         -- Enable navigation for the NPC
         spawnedNPC[key]["npc"]:SetNPCState(NPC_STATE_SCRIPT)
@@ -116,7 +118,7 @@ net.Receive("SendNPCInfo", function(len, ply)
         ply:sendGPTRequest(key, 'system', spawnedNPC[key]["personality"])
     else
         table.remove(spawnedNPC, key)
-        print("Failed to spawn NPC.")
+        AINPCS.DebugPrint("Failed to spawn NPC.")
     end
 end)
 
@@ -133,7 +135,7 @@ function SpawnNPC(pos, ang, npcData, key)
     -- Set up a hook for the NPC's death event
     hook.Add("OnNPCKilled", "OnAIDeath_" .. key, function(deadNPC, attacker, inflictor)
         if IsValid(deadNPC) and spawnedNPC[key] and deadNPC == spawnedNPC[key].npc then
-            print("AI NPC died or was despawned")
+            AINPCS.DebugPrint("AI NPC died or was despawned")
             spawnedNPC[key] = nil -- Remove NPC from list
             hook.Remove("OnNPCKilled", "OnAIDeath_" .. key) -- Remove the hook after processing
         end
@@ -142,7 +144,7 @@ function SpawnNPC(pos, ang, npcData, key)
     -- Set up a hook for the NPC's despawn event
     hook.Add("EntityRemoved", "OnAIDespawn_" .. key, function(removedEnt)
         if IsValid(removedEnt) and spawnedNPC[key] and removedEnt == spawnedNPC[key].npc then
-            print("AI NPC was despawned.")
+            AINPCS.DebugPrint("AI NPC was despawned.")
             spawnedNPC[key] = nil -- Remove NPC from list
             hook.Remove("EntityRemoved", "OnAIDespawn_" .. key) -- Remove the hook after processing
         end

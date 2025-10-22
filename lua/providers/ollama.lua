@@ -33,8 +33,8 @@ if SERVER then
 
             success = function(code, body, headers)
                 local loggedBody = body or "<empty response>"
-                print("[AI-NPCs][Ollama] Response code: " .. tostring(code))
-                print("[AI-NPCs][Ollama] Response body: " .. loggedBody)
+                AINPCS.DebugPrint("[AI-NPCs][Ollama] Response code: " .. tostring(code))
+                AINPCS.DebugPrint("[AI-NPCs][Ollama] Response body: " .. loggedBody)
                 -- Parse the JSON response from the GPT-3 API
                 local response = util.JSONToTable(body)
 
