@@ -43,6 +43,7 @@ net.Receive("SendNPCInfo", function(len, ply)
     print("Data received: " .. util.TableToJSON(data))
 
     local apiKey = data["apiKey"]
+    local providerId = data["provider"]
     -- Please dont steal our API key, we are poor
     -- TODO Add Encrpytion Decrpytion crap to obfuscate api key
     if apiKey == "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" then
@@ -51,7 +52,7 @@ net.Receive("SendNPCInfo", function(len, ply)
         print("API key received: " .. apiKey)
     end
 
-    if apiKey == "" then
+    if apiKey == "" and providerId ~= "ollama" then
         ply:ChatPrint("Invalid API key.")
         return nil
     end

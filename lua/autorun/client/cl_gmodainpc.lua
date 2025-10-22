@@ -440,12 +440,35 @@ function drawaihud()
     end
 
     function providerDropdown:OnSelect(index, value, data)
+        local previousProviderId = currentProviderId
         currentProviderId = data or value
-        if currentProviderId == "ollama" then
-            hostnameEntry:SetEditable(true)
+
+        local isOllama = currentProviderId == "ollama"
+
+        hostnameEntry:SetEditable(isOllama)
+
+        if isOllama then
+            apiKeyLabel:SetText("API Key (optional):")
+            freeAPIButton:SetVisible(false)
+
+            if freeAPIButton:GetChecked() then
+                freeAPIButton:SetChecked(false)
+            else
+                apiKeyEntry:SetEditable(true)
+            end
         else
-            hostnameEntry:SetEditable(false)
+            apiKeyLabel:SetText("API Key:")
+            freeAPIButton:SetVisible(true)
+
+            if not freeAPIButton:GetChecked() then
+                apiKeyEntry:SetEditable(true)
+            end
+
+            if previousProviderId == "ollama" and inputapikey and inputapikey ~= "" then
+                apiKeyEntry:SetText(inputapikey)
+            end
         end
+
         populateModels(currentProviderId)
     end
 
@@ -471,10 +494,19 @@ function drawaihud()
     createButton:Dock(TOP)
     createButton:DockMargin(0, 20, 0, 0)
     createButton.DoClick = function()
-        inputapikey = apiKeyEntry:GetValue()
-        local APIKEY = freeAPIButton:GetChecked() and
-            "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" or
-            apiKeyEntry:GetValue()
+        local enteredKey = apiKeyEntry:GetValue()
+        if currentProviderId ~= "ollama" and not freeAPIButton:GetChecked() then
+            inputapikey = enteredKey
+        end
+
+        local APIKEY
+        if currentProviderId == "ollama" then
+            APIKEY = enteredKey or ""
+        else
+            APIKEY = freeAPIButton:GetChecked() and
+                "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" or
+                enteredKey
+        end
 
         local selectedNPCPanel = npcDropdown:GetSelected()
         local selectedNPC = selectedNPCPanel and selectedNPCPanel.Data or selectedNPCData
