@@ -72,6 +72,10 @@ if SERVER then
             max_completion_tokens = npc["max_tokens"], 
         }
 
+        if npc["reasoning"] ~= nil and npc["reasoning"] ~= "" then
+            requestBody.reasoning_effort = npc["reasoning"]
+        end
+
         if npc["temperature"] ~= nil then
             requestBody.temperature = npc["temperature"]
         end
@@ -86,6 +90,9 @@ if SERVER then
             body = util.TableToJSON(requestBody), -- tableToJSON changes integers to float
 
             success = function(code, body, headers)
+                local loggedBody = body or "<empty response>"
+                AINPCS.DebugPrint("[AI-NPCs][OpenAI] Response code: " .. tostring(code))
+                AINPCS.DebugPrint("[AI-NPCs][OpenAI] Response body: " .. loggedBody)
                 -- Parse the JSON response from the GPT-3 API
                 local response = util.JSONToTable(body)
 

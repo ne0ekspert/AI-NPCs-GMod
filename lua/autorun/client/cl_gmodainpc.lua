@@ -531,6 +531,8 @@ function drawaihud()
             max_tokens = math.floor(maxTokensSlider:GetValue()),
         }
 
+        requestBody.reasoning = currentReasoningChoice
+
         if temperatureSlider:IsVisible() then
             requestBody.temperature = temperatureSlider:GetValue()
         end
