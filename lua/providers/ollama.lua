@@ -4,10 +4,6 @@ ollamaProvider.models = {}
 
 if SERVER then
     function ollamaProvider.request(npc, callback)
-        local function correctFloatToInt(jsonString)
-            return string.gsub(jsonString, '(%d+)%.0', '%1')
-        end
-
         if not npc["hostname"] then
             ErrorNoHalt("Hostname not defined")
         end
@@ -20,17 +16,25 @@ if SERVER then
             stream = false
         }
 
+        local headers = {
+            ["Content-Type"] = "application/json"
+        }
+
+        if npc["apiKey"] and npc["apiKey"] ~= "" then
+            headers["Authorization"] = "Bearer " .. npc["apiKey"]
+        end
+
         HTTP({
             url = "http://" .. npc["hostname"] .. "/api/chat",
             type = "application/json",
             method = "post",
-            headers = {
-                ["Content-Type"] = "application/json",
-                ["Authorization"] = "Bearer " .. npc["apiKey"] -- Access the API key from the Global table
-            },
-            body = correctFloatToInt(util.TableToJSON(requestBody)), -- tableToJSON changes integers to float
+            headers = headers,
+            body = util.TableToJSON(requestBody),
 
             success = function(code, body, headers)
+                local loggedBody = body or "<empty response>"
+                AINPCS.DebugPrint("[AI-NPCs][Ollama] Response code: " .. tostring(code))
+                AINPCS.DebugPrint("[AI-NPCs][Ollama] Response body: " .. loggedBody)
                 -- Parse the JSON response from the GPT-3 API
                 local response = util.JSONToTable(body)
 
