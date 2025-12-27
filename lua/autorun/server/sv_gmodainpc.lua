@@ -723,15 +723,11 @@ net.Receive("GetNPCModel", function(len, ply)
     net.Send(ply)
 end)
 
-net.Receive("SendNPCInfo", function(len, ply)
-    local data = net.ReadTable()
-    if AINPCS and AINPCS.HandleNPCSpawn then
-        AINPCS.HandleNPCSpawn(ply, data)
-    end
-end)
+local function handleNPCSelectionRequest(ply, ent)
+    if not IsValid(ply) then return end
+    AINPCS.DebugPrint("Selection request from " .. tostring(ply) .. " for ent " .. tostring(ent))
+    print("[AINPCS] selection request from " .. tostring(ply) .. " for ent " .. tostring(ent))
 
-net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
-    local ent = net.ReadEntity()
     if not IsValid(ent) then
         clearPlayerSelection(ply)
         net.Start("AINPCS_SelectNPCFailed")
@@ -742,6 +738,8 @@ net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
 
     local key, record = findNPCRecordByEntity(ent)
     if not key or not record then
+        AINPCS.DebugPrint("Selection failed: no record for entity " .. tostring(ent))
+        print("[AINPCS] selection failed: no record for entity " .. tostring(ent))
         clearPlayerSelection(ply)
         net.Start("AINPCS_SelectNPCFailed")
         net.WriteString("That NPC is not managed by AI NPCs.")
@@ -757,9 +755,13 @@ net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
         return
     end
 
+    AINPCS.DebugPrint("Selection ok for key " .. tostring(key) .. " history size " .. tostring(#(record.history or {})))
+    print("[AINPCS] selection ok for key " .. tostring(key) .. " history size " .. tostring(#(record.history or {})))
+
     ply.AINPCS_SelectedEnt = ent
     ply.AINPCS_SelectedKey = key
 
+    local safeHistory = sanitizeHistory(record.history or {})
     local payload = {
         npcPreset = table.Copy(record.npcPreset or {}),
         personality = record.personalityPrompt or "",
@@ -774,7 +776,8 @@ net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
         npc_id = record.npcPreset and record.npcPreset.id,
         npc_class = record.npcPreset and record.npcPreset.class,
         npc_model = record.npcPreset and record.npcPreset.model,
-        history = table.Copy(record.history or {})
+        history = safeHistory,
+        history_json = util.TableToJSON(safeHistory, true) or "[]"
     }
 
     if not payload.npc_model and IsValid(record.npc) then
@@ -790,6 +793,20 @@ net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
     net.WriteUInt(key, 16)
     net.WriteTable(payload)
     net.Send(ply)
+end
+
+AINPCS.HandleNPCSelection = handleNPCSelectionRequest
+
+net.Receive("SendNPCInfo", function(len, ply)
+    local data = net.ReadTable()
+    if AINPCS and AINPCS.HandleNPCSpawn then
+        AINPCS.HandleNPCSpawn(ply, data)
+    end
+end)
+
+net.Receive("AINPCS_RequestNPCSelection", function(_, ply)
+    local ent = net.ReadEntity()
+    handleNPCSelectionRequest(ply, ent)
 end)
 
 net.Receive("AINPCS_UpdateNPC", function(_, ply)

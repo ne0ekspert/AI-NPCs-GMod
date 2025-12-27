@@ -14,6 +14,10 @@ TOOL.Information = {
 
 local FREE_API_KEY = "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"
 
+if CLIENT then
+    print("[AINPCS] toolgun script loaded")
+end
+
 
 TOOL.ClientConVar = {
     personality = "",
@@ -160,7 +164,69 @@ if CLIENT then
         end
     end
 
+    local function normalizeHistory(raw)
+        local normalized = {}
+        if not istable(raw) then return normalized end
+        if #raw > 0 then
+            for _, entry in ipairs(raw) do
+                if istable(entry) then
+                    table.insert(normalized, entry)
+                end
+            end
+            return normalized
+        end
+        for _, entry in pairs(raw) do
+            if istable(entry) then
+                table.insert(normalized, entry)
+            end
+        end
+        return normalized
+    end
+
+    local function getActiveTool()
+        local ply = LocalPlayer()
+        if IsValid(ply) then
+            local tool = ply:GetTool("ainpcs")
+            if tool then
+                return tool
+            end
+        end
+        if TOOL then
+            return TOOL
+        end
+        return nil
+    end
+
+    local function updateMemoryUI(tool)
+        if not tool or not IsValid(tool.AINPCS_MemoryList) then return end
+
+        local memoryList = tool.AINPCS_MemoryList
+        memoryList:Clear()
+
+        local history = tool.SelectedNPCMemory
+        if istable(history) then
+            for _, entry in ipairs(history) do
+                if istable(entry) then
+                    local line = memoryList:AddLine(entry.role or "", entry.content or "")
+                    line.MemoryEntry = table.Copy(entry)
+                end
+            end
+        end
+
+        local hasSelection = IsValid(tool.SelectedNPCEnt)
+        local controls = tool.AINPCS_MemoryControls or {}
+        for _, control in ipairs(controls) do
+            if IsValid(control) then
+                control:SetEnabled(hasSelection)
+            end
+        end
+    end
+
     function TOOL.BuildCPanel(panel)
+        local tool = getActiveTool()
+        if tool then
+            tool.Panel = panel
+        end
         panel:ClearControls()
         panel:Help("Configure the AI NPC then left click to spawn it.")
 
@@ -392,17 +458,6 @@ if CLIENT then
         panel:Help("Reload (R) to open the full AI NPC window.")
 
         panel:Help("Memory (message list). Right click an AI NPC to load it.")
-        local function getTool()
-            local ply = LocalPlayer()
-            if IsValid(ply) then
-                local tool = ply:GetTool("ainpcs")
-                if tool then
-                    return tool
-                end
-            end
-            return TOOL
-        end
-
         local memoryList = vgui.Create("DListView", panel)
         memoryList:SetTall(220)
         memoryList:SetMultiSelect(false)
@@ -419,16 +474,7 @@ if CLIENT then
         end
 
         local function loadMemoryList()
-            memoryList:Clear()
-            local tool = getTool()
-            if not tool then return end
-            local history = tool.SelectedNPCMemory
-            if not istable(history) then return end
-            for _, entry in ipairs(history) do
-                if istable(entry) then
-                    addMemoryRow(table.Copy(entry))
-                end
-            end
+            updateMemoryUI(getActiveTool())
         end
 
         local roleCombo = panel:ComboBox("Role")
@@ -490,7 +536,7 @@ if CLIENT then
 
         local addMessage = panel:Button("Add Message")
         addMessage.DoClick = function()
-            local tool = getTool()
+            local tool = getActiveTool()
             if not tool or not IsValid(tool.SelectedNPCEnt) then
                 showSelectionNotice("No AI NPC selected.", true)
                 return
@@ -572,7 +618,7 @@ if CLIENT then
 
         local applyMemory = panel:Button("Apply Memory Edits")
         applyMemory.DoClick = function()
-            local tool = getTool()
+            local tool = getActiveTool()
             if not tool or not IsValid(tool.SelectedNPCEnt) then
                 showSelectionNotice("No AI NPC selected.", true)
                 return
@@ -587,7 +633,7 @@ if CLIENT then
             tool.SelectedNPCMemory = memory
         end
 
-        local tool = getTool()
+        local tool = getActiveTool()
         local hasSelection = tool and IsValid(tool.SelectedNPCEnt)
         memoryList:SetEnabled(hasSelection)
         roleCombo:SetEnabled(hasSelection)
@@ -599,6 +645,21 @@ if CLIENT then
         moveDown:SetEnabled(hasSelection)
         applyMemory:SetEnabled(hasSelection)
 
+        if tool then
+            tool.AINPCS_MemoryList = memoryList
+            tool.AINPCS_MemoryControls = {
+                memoryList,
+                roleCombo,
+                contentEntry,
+                addMessage,
+                updateMessage,
+                removeMessage,
+                moveUp,
+                moveDown,
+                applyMemory
+            }
+        end
+
         loadMemoryList()
     end
 
@@ -607,6 +668,7 @@ if CLIENT then
         self.SelectedNPCEnt = nil
         self.SelectedNPCData = nil
         self.SelectedNPCMemory = {}
+        updateMemoryUI(self)
     end
 
     local function setToolConVar(name, value, defaultValue)
@@ -620,8 +682,9 @@ if CLIENT then
     end
 
     local function refreshControlPanel()
-        if TOOL.Panel and IsValid(TOOL.Panel) then
-            TOOL.BuildCPanel(TOOL.Panel)
+        local tool = getActiveTool()
+        if tool and tool.Panel and IsValid(tool.Panel) then
+            tool.BuildCPanel(tool.Panel)
         end
     end
 
@@ -634,12 +697,32 @@ if CLIENT then
         if not IsValid(ply) then return end
 
         local tool = ply:GetTool("ainpcs")
-        if not tool then return end
+        if not tool then
+            if AINPCS and AINPCS.DebugPrint then
+                AINPCS.DebugPrint("AINPCS tool: selection received but tool missing")
+            end
+            print("[AINPCS] tool selection received but tool missing")
+            return
+        end
 
         tool.SelectedNPCKey = key
         tool.SelectedNPCEnt = ent
         tool.SelectedNPCData = data
-        tool.SelectedNPCMemory = istable(data.history) and data.history or {}
+        local history = nil
+        if isstring(data.history_json) and data.history_json ~= "" then
+            history = util.JSONToTable(data.history_json)
+        end
+        if not istable(history) then
+            history = data.history
+        end
+        tool.SelectedNPCMemory = normalizeHistory(history)
+        updateMemoryUI(tool)
+        if AINPCS and AINPCS.DebugPrint then
+            AINPCS.DebugPrint("AINPCS tool: selection received for key " .. tostring(key) ..
+                " history size " .. tostring(#tool.SelectedNPCMemory))
+        end
+        print("[AINPCS] tool selection received for key " .. tostring(key) ..
+            " history size " .. tostring(#tool.SelectedNPCMemory))
 
         local preset = data.npcPreset or {}
         setToolConVar("personality", data.personality, "")
@@ -688,8 +771,13 @@ if CLIENT then
         local tool = ply:GetTool("ainpcs")
         if tool and tool.ClearSelection then
             tool:ClearSelection()
+            updateMemoryUI(tool)
         end
 
+        if AINPCS and AINPCS.DebugPrint then
+            AINPCS.DebugPrint("AINPCS tool: selection failed: " .. tostring(reason))
+        end
+        print("[AINPCS] tool selection failed: " .. tostring(reason))
         showSelectionNotice(reason ~= "" and reason or "Unable to select AI NPC.", true)
     end)
 end
@@ -790,21 +878,35 @@ end
 
 function TOOL:RightClick(trace)
     if CLIENT then
+        print("[AINPCS] tool right-click trace hit " .. tostring(trace.Hit) ..
+            " ent " .. tostring(trace.Entity) ..
+            " isnpc " .. tostring(IsValid(trace.Entity) and trace.Entity:IsNPC()) ..
+            " isainpc " .. tostring(IsValid(trace.Entity) and trace.Entity:GetNWBool("AINPCS_IsAINPC", false)))
         if not trace.Hit or not IsValid(trace.Entity) then return false end
 
         if not isAINPCEntity(trace.Entity) then
+            print("[AINPCS] tool right-click rejected: not an AI NPC")
             if self.ClearSelection then
                 self:ClearSelection()
             end
             return false
         end
 
-        net.Start("AINPCS_RequestNPCSelection")
-        net.WriteEntity(trace.Entity)
-        net.SendToServer()
         return true
     end
 
+    print("[AINPCS] tool right-click server trace hit " .. tostring(trace.Hit) ..
+        " ent " .. tostring(trace.Entity))
+    if not trace.Hit or not IsValid(trace.Entity) then return false end
+
+    local owner = self:GetOwner()
+    if not IsValid(owner) then return false end
+
+    if AINPCS and AINPCS.HandleNPCSelection then
+        AINPCS.HandleNPCSelection(owner, trace.Entity)
+    else
+        print("[AINPCS] tool right-click server missing HandleNPCSelection")
+    end
     return true
 end
 
