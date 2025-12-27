@@ -4,6 +4,10 @@ end
 
 AINPCS = AINPCS or {}
 
+if isfunction(RunConsoleCommand) then
+    RunConsoleCommand("developer", "1")
+end
+
 local function isDeveloperEnabled()
     local conVar = GetConVar and GetConVar("developer")
     if not conVar then return false end
