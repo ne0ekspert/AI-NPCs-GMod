@@ -13,6 +13,14 @@ if SERVER then
             temperature = npc["temperature"]
         }
 
+        if AINPCS and AINPCS.GetToolDefinitions then
+            local tools = AINPCS.GetToolDefinitions()
+            if istable(tools) and #tools > 0 then
+                requestBody.tools = tools
+                requestBody.tool_choice = "auto"
+            end
+        end
+
         HTTP({
             url = "https://openrouter.ai/api/v1/chat/completions",
             type = "application/json",

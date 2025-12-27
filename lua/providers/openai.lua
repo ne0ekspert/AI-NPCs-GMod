@@ -72,6 +72,14 @@ if SERVER then
             max_completion_tokens = npc["max_tokens"], 
         }
 
+        if AINPCS and AINPCS.GetToolDefinitions then
+            local tools = AINPCS.GetToolDefinitions()
+            if istable(tools) and #tools > 0 then
+                requestBody.tools = tools
+                requestBody.tool_choice = "auto"
+            end
+        end
+
         if npc["reasoning"] ~= nil and npc["reasoning"] ~= "" then
             requestBody.reasoning_effort = npc["reasoning"]
         end
