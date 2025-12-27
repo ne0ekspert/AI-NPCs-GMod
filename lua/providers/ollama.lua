@@ -4,8 +4,22 @@ ollamaProvider.models = {}
 
 if SERVER then
     function ollamaProvider.request(npc, callback)
-        if not npc["hostname"] then
+        if not npc["hostname"] or npc["hostname"] == "" then
             ErrorNoHalt("Hostname not defined")
+            if callback then
+                callback("Hostname not defined", nil)
+            end
+            return
+        end
+
+        local baseUrl = npc["hostname"]
+        if not string.match(baseUrl, "^https?://") then
+            baseUrl = "http://" .. baseUrl
+        end
+        baseUrl = string.gsub(baseUrl, "/+$", "")
+        local url = baseUrl
+        if not string.find(url, "/api/chat", 1, true) then
+            url = url .. "/api/chat"
         end
 
         local requestBody = {
@@ -25,7 +39,7 @@ if SERVER then
         end
 
         HTTP({
-            url = "http://" .. npc["hostname"] .. "/api/chat",
+            url = url,
             type = "application/json",
             method = "post",
             headers = headers,
