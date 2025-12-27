@@ -27,10 +27,7 @@ end
 local function buildPersonalityPrompt(personality)
     return "it is your job to act like this personality: " ..
                (personality or "") ..
-               "if you understand, respond with a hello in character.\n\n" ..
-               "You can control your movement with tools. " ..
-               "If the user asks you to follow them or wander, call the appropriate tool. " ..
-               "If you need nearby player info, call scan_players."
+               "if you understand, respond with a hello in character."
 end
 
 local function getToolDefinitions()
