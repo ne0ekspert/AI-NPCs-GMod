@@ -187,14 +187,22 @@ function drawaihud()
         net.WriteTable(data)
         net.SendToServer()
     end
-    for npcId, npcData in pairs(list.Get("NPC")) do
-        npcData.Id = npcId
-        npcDropdown:AddChoice(npcId, npcData)
+    local npcList = list.Get("NPC") or {}
+    for npcId, npcData in pairs(npcList) do
+        local entry = istable(npcData) and table.Copy(npcData) or {}
+        entry.Id = npcId
+        npcDropdown:AddChoice(npcId, entry)
     end
     npcDropdown:ChooseOptionID(1)
     if not selectedNPCData then
         local selectedPanel = npcDropdown:GetSelected()
         selectedNPCData = selectedPanel and selectedPanel.Data
+    end
+    if not istable(selectedNPCData) then
+        selectedNPCData = {
+            Id = "npc_citizen",
+            Class = "npc_citizen"
+        }
     end
 
     -- API key
@@ -512,6 +520,12 @@ function drawaihud()
 
         local selectedNPCPanel = npcDropdown:GetSelected()
         local selectedNPC = selectedNPCPanel and selectedNPCPanel.Data or selectedNPCData
+        if not istable(selectedNPC) then
+            selectedNPC = {
+                Id = "npc_citizen",
+                Class = "npc_citizen"
+            }
+        end
 
         local chosenModel
         if modelDropdown:IsVisible() then
@@ -530,6 +544,10 @@ function drawaihud()
             model = chosenModel,
             max_tokens = math.floor(maxTokensSlider:GetValue()),
         }
+
+        requestBody.npc_id = selectedNPC.Id or selectedNPC.Class
+        requestBody.npc_class = selectedNPC.Class or selectedNPC.Id
+        requestBody.npc_model = selectedNPC.Model
 
         requestBody.reasoning = currentReasoningChoice
 
@@ -557,7 +575,8 @@ end)
 net.Receive("SayTTS", function()
     local key = net.ReadString()
     local text = net.ReadString() -- Read the TTS text from the network
-    local ply = net.ReadEntity() -- Read the player entity from the network
+    local ent = net.ReadEntity() -- Read the player entity from the network
+    if not IsValid(ent) then return end
     text = string.sub(string.Replace(text, " ", "%20"), 1, 1000) -- Replace spaces with "%20" and limit the text length to 100 characters
 
     -- Play the TTS sound using the provided URL
@@ -565,7 +584,7 @@ net.Receive("SayTTS", function()
         "https://tetyys.com/SAPI4/SAPI4?voice=Sam&pitch=100&speed=150&text=" ..
             text, "3d", function(sound)
             if IsValid(sound) then
-                sound:SetPos(ply:GetPos()) -- Set the sound position to the player's position
+                sound:SetPos(ent:GetPos()) -- Set the sound position to the player's position
                 sound:SetVolume(1) -- Set the sound volume to maximum
                 sound:Play() -- Play the sound
                 sound:Set3DFadeDistance(200, 1000) -- Set the 3D sound fade distance
@@ -578,5 +597,7 @@ net.Receive("TTSPositionUpdate", function()
     local key = net.ReadString()
     local pos = net.ReadVector()
 
-    soundList[key]:SetPos(pos)
+    local activeSound = soundList[key]
+    if not IsValid(activeSound) then return end
+    activeSound:SetPos(pos)
 end)
